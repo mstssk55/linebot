@@ -39,6 +39,10 @@ def remove_m(area,kind):
         new_a = new_a.replace(',','')
     return float(new_a)
 
+def remove_walk(time):
+    minite = time.split("徒歩")[1]
+    minite = minite.split("分")[0]
+    return int(minite)
 
 gauth = GoogleAuth()
 gauth.credentials = key.credentials
@@ -67,29 +71,44 @@ for i in s.kind:
 ws_conditions_list = gc.open_by_key(key.SPREADSHEET_KEY).worksheet("希望条件")
 
 conditions_list = ws_conditions_list.get_all_values()
+conditions_list = [{k:i for i,k in zip(c,conditions_list[0])} for c in conditions_list]
 del conditions_list[0]
-conditions_list = [i for i in conditions_list if i[7] == "●" ]
-conditions = conditions_list[0]
+conditions_list = [i for i in conditions_list if i["配信"] == "●" ]
 
 
-sc_list = sc_all_list[conditions[1]]
-sc_list_title = sc_all_title[conditions[1]]
-filter_col = s.filter_col[conditions[1]]
-sc_list = [i for i in sc_list if conditions[4] in i[filter_col[0]]]
-sc_list = [i for i in sc_list if int(conditions[5]) > remove_price(i[filter_col[2]])]
-sc_list = [i for i in sc_list if int(conditions[6]) < remove_m(i[filter_col[3]],conditions[1])]
-send_data = [{i: k for i,k in zip(sc_list_title,s)} for s in sc_list]
-send_data = [[[i,d[i]] for i in s.send_categories[conditions[1]]]for d in send_data]
+for p in conditions_list:
+    c_kind = p["物件種別"]
+    sc_list = sc_all_list[c_kind]
+    sc_list_title = sc_all_title[c_kind]
+    filter_col = s.filter_col[c_kind]
+    if p["エリアの検索方法"] == "地域から選ぶ":
+        if p["地域"] is not "":
+            sc_list = [i for i in sc_list if p["地域"] in i[filter_col[0]]]
+    elif p["エリアの検索方法"] == "路線から選ぶ":
+        if p["路線"] is not "":
+            sc_list = [i for i in sc_list if p["路線"] in i[filter_col[1]]]
+            if p["駅名"] is not "":
+                sc_list = [i for i in sc_list if p["駅名"] in i[filter_col[1]]]
+                sc_list = [i for i in sc_list if "バス" not in i[filter_col[1]].split("」")[1]]
+        if p["分数（徒歩）"] is not "":
+            sc_list = [i for i in sc_list if int(p["分数（徒歩）"]) >= remove_walk(i[filter_col[1]])]
+    if p["上限価格（万円）"] is not "":
+        sc_list = [i for i in sc_list if int(p["上限価格（万円）"]) > remove_price(i[filter_col[2]])]
+    if p["下限平米数（㎡）"] is not "":
+        sc_list = [i for i in sc_list if int(p["下限平米数（㎡）"]) < remove_m(i[filter_col[3]],c_kind)]
 
 
-# -------------------------------------------------------------------------------------------
+    if len(sc_list) >0:
+        send_data = [{i: k for i,k in zip(sc_list_title,s)} for s in sc_list]
+        send_data = [[[i,d[i]] for i in s.send_categories[c_kind]]for d in send_data]
+        # -------------------------------------------------------------------------------------------
 
-# 画像をLINEで送付-----------------------------------------------------------------------------
+        # 画像をLINEで送付-----------------------------------------------------------------------------
 
-# -------------------------------------------------------------------------------------------
-line_bot_api = LineBotApi(key.LINE_ACCESS_TOKEN)
-user_id = conditions[11]
-profile = line_bot_api.get_profile(user_id)
-user_name = profile.display_name
-messages = TextSendMessage(text=line_send_message(user_name,send_data))
-line_bot_api.push_message(user_id, messages=messages)
+        # -------------------------------------------------------------------------------------------
+        line_bot_api = LineBotApi(key.LINE_ACCESS_TOKEN)
+        user_id = p["lineID"]
+        profile = line_bot_api.get_profile(user_id)
+        user_name = profile.display_name
+        messages = TextSendMessage(text=line_send_message(user_name,send_data))
+        line_bot_api.push_message(user_id, messages=messages)
