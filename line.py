@@ -11,10 +11,13 @@ import sys
 
 def line_send_message(name,property_data):
     send_text = f'{name}様\n\nこんにちは。\n'
-    send_text +=f'{name}様のご希望の条件に近い不動産新着情報がございます。\n\n'
-    for i in property_data:
-        send_text += f'{i[0]}：{i[1]}\n'
-    send_text +=f'\n\n如何でしょうか。\nもしご興味ございましたら、その旨返信ください。\n詳細情報に関して担当者からご連絡させて頂きます。'
+    send_text +=f'{name}様のご希望の条件に近い不動産新着情報が{len(property_data)}件ございます。\n\n'
+    for num,d in enumerate(property_data):
+        send_text += f'【{num+1}件目】\n'
+        for i in d:
+            send_text += f'{i[0]}：{i[1]}\n'
+        send_text += f'\n\n'
+    send_text +=f'如何でしょうか。\nもしご興味ございましたら、その旨返信ください。\n詳細情報に関して担当者からご連絡させて頂きます。'
     return send_text
 
 
@@ -49,12 +52,15 @@ gc = gspread.authorize(key.credentials)
 #driveフォルダ内のファイル名一覧
 sc_file_list = [f['title'] for f in drive.ListFile({'q': '"{}" in parents'.format(key.FOLDER_ID)}).GetList()]
 
-ws_sc_list = gc.open("2021-11-09").worksheet("中古マンション")
-sc_list = ws_sc_list.get_all_values()
-sc_list_title = sc_list[0]
-del sc_list[0]
-print(sc_list)
-sys.exit()
+ws_sc_file = gc.open("2021-11-09")
+sc_all_list = {}
+sc_all_title = {}
+for i in s.kind:
+    sc_list = ws_sc_file.worksheet(i).get_all_values()
+    sc_all_title[i] = sc_list[0]
+    del sc_list[0]
+    sc_all_list[i] = sc_list
+
 
 
 #共有設定したスプレッドシートのシート1を開く
@@ -66,17 +72,14 @@ conditions_list = [i for i in conditions_list if i[7] == "●" ]
 conditions = conditions_list[0]
 
 
-
-sc_list_area = [i for i in sc_list if conditions[4] in i[4]]
-sc_list_price = [i for i in sc_list_area if int(conditions[5]) > remove_price(i[3])]
-sc_list_m = [i for i in sc_list_price if int(conditions[6]) > remove_m(i[8],"中古マンション")]
-
-
-send_data = [{i: k for i,k in zip(sc_list_title,s)} for s in sc_list_m]
-send_data = send_data[0]
-
-send_data = [[i,send_data[i]] for i in s.send_categories]
-
+sc_list = sc_all_list[conditions[1]]
+sc_list_title = sc_all_title[conditions[1]]
+filter_col = s.filter_col[conditions[1]]
+sc_list = [i for i in sc_list if conditions[4] in i[filter_col[0]]]
+sc_list = [i for i in sc_list if int(conditions[5]) > remove_price(i[filter_col[2]])]
+sc_list = [i for i in sc_list if int(conditions[6]) < remove_m(i[filter_col[3]],conditions[1])]
+send_data = [{i: k for i,k in zip(sc_list_title,s)} for s in sc_list]
+send_data = [[[i,d[i]] for i in s.send_categories[conditions[1]]]for d in send_data]
 
 
 # -------------------------------------------------------------------------------------------
