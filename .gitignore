@@ -1,0 +1,6 @@
+__pycache__/
+js/
+venv/
+config.ini
+key.py
+requirements.txt
