@@ -42,7 +42,7 @@ if "env" in os.environ.keys():
     LINE_ACCESS_TOKEN = os.environ["LINE_ACCESS_TOKEN"]
     SPREADSHEET_KEY = os.environ['SPREADSHEET_KEY']
     FOLDER_ID = os.environ['FOLDER_ID']
-    GOOGLE_JSON = os.environ['GOOGLE_JSON']
+    GOOGLE_JSON = json.loads(os.environ['GOOGLE_JSON'])
 
 else:
     mode = 1
@@ -183,7 +183,7 @@ if len(conditions_list) > 0:
         #地域から選ぶ場合
         print(f'{c_kind}の物件情報は{len(sc_list)}件です')
         if p["エリアの検索方法"] == "地域から選ぶ":
-            if p["地域"] is not "": #地域が空白じゃなければ
+            if p["地域"] != "": #地域が空白じゃなければ
                 print(f'エリアを地域から検索します。')
                 sc_list = [i for i in sc_list if p["地域"] in i[filter_col[0]]]
                 print(f'{p["地域"]}に該当する物件は{len(sc_list)}件でした。')
@@ -191,11 +191,11 @@ if len(conditions_list) > 0:
                 print(f'エリアの条件設定はありません。')
         #路線から選ぶ場合
         elif p["エリアの検索方法"] == "路線から選ぶ":
-            if p["路線"] is not "": #路線が空白じゃなければ
+            if p["路線"] != "": #路線が空白じゃなければ
                 print(f'エリアを路線から検索します。')
                 sc_list = [i for i in sc_list if p["路線"] in i[filter_col[1]]]
                 print(f'{p["路線"]}に該当する物件は{len(sc_list)}件でした。')
-                if p["駅名"] is not "":
+                if p["駅名"] != "":
                     print(f'駅名で絞り込みをします。')
                     sc_list = [i for i in sc_list if p["駅名"] in i[filter_col[1]]]
                     sc_list = [i for i in sc_list if "バス" not in i[filter_col[1]].split("」")[1]]
@@ -204,7 +204,7 @@ if len(conditions_list) > 0:
                     print(f'駅名の条件設定はありません。')
             else:
                 print(f'路線の条件設定はありません。')
-            if p["分数（徒歩）"] is not "":
+            if p["分数（徒歩）"] != "":
                 print(f'駅までの分数で絞り込みをします。')
                 sc_list = [i for i in sc_list if int(p["分数（徒歩）"]) >= remove_walk(i[filter_col[1]])]
                 print(f'徒歩{p["分数（徒歩）"]}以内に該当する物件は{len(sc_list)}件でした。')
@@ -212,7 +212,7 @@ if len(conditions_list) > 0:
                 print(f'分数の条件設定はありません。')
 
         #上限価格でフィルター
-        if p["上限価格（万円）"] is not "":
+        if p["上限価格（万円）"] != "":
             print(f'上限価格で検索します。')
             sc_list = [i for i in sc_list if int(p["上限価格（万円）"]) > remove_price(i[filter_col[2]])]
             print(f'{p["上限価格（万円）"]}万円以下に該当する物件は{len(sc_list)}件でした。')
@@ -220,7 +220,7 @@ if len(conditions_list) > 0:
             print(f'上限価格の条件設定はありません。')
 
         #下限平米数でフィルター
-        if p["下限平米数（㎡）"] is not "":
+        if p["下限平米数（㎡）"] != "":
             print(f'下限平米数で検索します。')
             sc_list = [i for i in sc_list if int(p["下限平米数（㎡）"]) < remove_m(i[filter_col[3]],c_kind)]
             print(f'{p["下限平米数（㎡）"]}㎡以上に該当する物件は{len(sc_list)}件でした。')
