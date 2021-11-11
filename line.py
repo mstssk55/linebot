@@ -43,6 +43,7 @@ if "env" in os.environ.keys():
     SPREADSHEET_KEY = os.environ['SPREADSHEET_KEY']
     FOLDER_ID = os.environ['FOLDER_ID']
     GOOGLE_JSON = json.loads(os.environ['GOOGLE_JSON'])
+    CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_dict(GOOGLE_JSON, SCOPES)
 
 else:
     mode = 1
@@ -53,6 +54,8 @@ else:
     SPREADSHEET_KEY = os.getenv('SPREADSHEET_KEY')
     FOLDER_ID = os.getenv('FOLDER_ID')
     GOOGLE_JSON = 'js/fc-line-59d509520a59.json'
+    CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_JSON, SCOPES)
+
 
 
 
@@ -140,7 +143,7 @@ def remove_walk(time):
 #【google apiの設定】
 #認証情報設定
 #ダウンロードしたjsonファイル名をクレデンシャル変数に設定（秘密鍵、Pythonファイルから読み込みしやすい位置に置く）
-credentials = ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_JSON, SCOPES)
+credentials = CREDENTIALS
 gauth = GoogleAuth()
 gauth.credentials = credentials
 drive = GoogleDrive(gauth)
