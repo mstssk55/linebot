@@ -1,7 +1,6 @@
 __pycache__/
 js/
 venv/
-config.ini
 key.py
-requirements.txt
-token.pickle
+token.json
+.env

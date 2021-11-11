@@ -1,21 +1,66 @@
-import setting as s
-from linebot import LineBotApi
-from linebot.models import TextSendMessage
-import key as key
-import gspread
-import json
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
-import sys
-import pickle
+import os
 import os.path
+
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-import base64
+from google.oauth2.credentials import Credentials
+from oauth2client.service_account import ServiceAccountCredentials 
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
+import gspread
 from email.mime.text import MIMEText
-from apiclient import errors
 
+from linebot import LineBotApi
+from linebot.models import TextSendMessage
+
+import json
+import base64
+from apiclient import errors
+from dotenv import load_dotenv
+
+import setting as s
+import sys
+load_dotenv()
+
+# ---------------------------------------------------------------------------------------------------------------
+
+# 変数設定
+
+# ---------------------------------------------------------------------------------------------------------------
+
+
+# Google api用
+SCOPES = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+SCOPES_GMAIL = ['https://www.googleapis.com/auth/gmail.send']
+
+if "env" in os.environ.keys():
+    mode = 0
+    token_json = os.environ["token"]
+    secret = json.loads(os.environ["credentials"])
+    flow_secret = InstalledAppFlow.from_client_config(secret, SCOPES_GMAIL)
+    LINE_ACCESS_TOKEN = os.environ["LINE_ACCESS_TOKEN"]
+    SPREADSHEET_KEY = os.environ('SPREADSHEET_KEY')
+    FOLDER_ID = os.environ('FOLDER_ID')
+    GOOGLE_JSON = os.environ('GOOGLE_JSON')
+
+else:
+    mode = 1
+    token_json = os.path.exists('token.json')
+    secret = 'js/credentials.json'
+    flow_secret = InstalledAppFlow.from_client_secrets_file(secret, SCOPES_GMAIL)
+    LINE_ACCESS_TOKEN = os.getenv('LINE_ACCESS_TOKEN')
+    SPREADSHEET_KEY = os.getenv('SPREADSHEET_KEY')
+    FOLDER_ID = os.getenv('FOLDER_ID')
+    GOOGLE_JSON = 'js/fc-line-59d509520a59.json'
+
+
+
+# ---------------------------------------------------------------------------------------------------------------
+
+# 変数設定ここまで
+
+# ---------------------------------------------------------------------------------------------------------------
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -93,13 +138,16 @@ def remove_walk(time):
 # ---------------------------------------------------------------------------------------------------------------
 
 #【google apiの設定】
+#認証情報設定
+#ダウンロードしたjsonファイル名をクレデンシャル変数に設定（秘密鍵、Pythonファイルから読み込みしやすい位置に置く）
+credentials = ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_JSON, SCOPES)
 gauth = GoogleAuth()
-gauth.credentials = key.credentials
+gauth.credentials = credentials
 drive = GoogleDrive(gauth)
-gc = gspread.authorize(key.credentials) #OAuth2の資格情報を使用してGoogle APIにログインします。
+gc = gspread.authorize(credentials) #OAuth2の資格情報を使用してGoogle APIにログインします。
 
 #driveフォルダ内のファイル名一覧取得
-sc_file_list = [f['title'] for f in drive.ListFile({'q': '"{}" in parents'.format(key.FOLDER_ID)}).GetList()]
+sc_file_list = [f['title'] for f in drive.ListFile({'q': '"{}" in parents'.format(FOLDER_ID)}).GetList()]
 
 #該当ファイルの物件情報取得
 ws_sc_file = gc.open("2021-11-09")#該当ファイルを開く
@@ -112,7 +160,7 @@ for i in s.kind: #種類別に物件情報を格納
     sc_all_list[i] = sc_list
 
 #ユーザーの希望条件リストを習得
-ws_conditions_list = gc.open_by_key(key.SPREADSHEET_KEY).worksheet("希望条件") #スプレッドシート【LINE物件情報自動通知】の"希望条件"シートを開く
+ws_conditions_list = gc.open_by_key(SPREADSHEET_KEY).worksheet("希望条件") #スプレッドシート【LINE物件情報自動通知】の"希望条件"シートを開く
 conditions_list = ws_conditions_list.get_all_values() #希望条件シートの全データ取得
 conditions_list = [{k:i for i,k in zip(c,conditions_list[0])} for c in conditions_list] #辞書型に変換
 del conditions_list[0] #1行目削除
@@ -194,7 +242,7 @@ if len(conditions_list) > 0:
                 # -------------------------------------------------------------------------------------------
                 # LINEで送付----------------------------------------------------------------------------------
                 # -------------------------------------------------------------------------------------------
-                    line_bot_api = LineBotApi(key.LINE_ACCESS_TOKEN)
+                    line_bot_api = LineBotApi(LINE_ACCESS_TOKEN)
                     user_id = p["lineID"]
                     profile = line_bot_api.get_profile(user_id)
                     user_name = profile.display_name
@@ -214,21 +262,23 @@ if len(conditions_list) > 0:
                 # MAILで送付----------------------------------------------------------------------------------
                 # -------------------------------------------------------------------------------------------
                     creds = None
-                    if os.path.exists('token.pickle'):
-                        with open('token.pickle', 'rb') as token:
-                            creds = pickle.load(token)
+                    if token_json:
+                        if mode == 0:
+                            tokenFile = json.loads(os.environ["token"])
+                            with open('token.json', 'w') as f:
+                                json.dump(tokenFile, f, ensure_ascii=False)
+                        creds = Credentials.from_authorized_user_file('token.json', SCOPES_GMAIL)
                     if not creds or not creds.valid:
                         if creds and creds.expired and creds.refresh_token:
                             creds.refresh(Request())
                         else:
-                            flow = InstalledAppFlow.from_client_secrets_file(
-                                'js/credentials.json', key.SCOPES)
+                            flow = flow_secret
                             creds = flow.run_local_server()
-                        with open('token.pickle', 'wb') as token:
-                            pickle.dump(creds, token)
+                        with open('token.json', 'w') as token:
+                            token.write(creds.to_json())
                     service = build('gmail', 'v1', credentials=creds)
                     # 6. メール本文の作成
-                    sender = 'm.tobcreation@gmail.com'
+                    sender = ''
                     to = p["mail"]
                     subject = '希望条件に近い不動産情報が見つかりました。'
                     message_text = line_send_message(p["お客様名"],send_data)
