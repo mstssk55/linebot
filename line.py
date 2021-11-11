@@ -29,7 +29,6 @@ load_dotenv()
 
 # ---------------------------------------------------------------------------------------------------------------
 
-
 # Google api用
 SCOPES = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
 SCOPES_GMAIL = ['https://www.googleapis.com/auth/gmail.send']
@@ -55,9 +54,6 @@ else:
     FOLDER_ID = os.getenv('FOLDER_ID')
     GOOGLE_JSON = 'js/fc-line-59d509520a59.json'
     CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_JSON, SCOPES)
-
-
-
 
 # ---------------------------------------------------------------------------------------------------------------
 
