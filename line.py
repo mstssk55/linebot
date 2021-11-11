@@ -40,9 +40,9 @@ if "env" in os.environ.keys():
     secret = json.loads(os.environ["credentials"])
     flow_secret = InstalledAppFlow.from_client_config(secret, SCOPES_GMAIL)
     LINE_ACCESS_TOKEN = os.environ["LINE_ACCESS_TOKEN"]
-    SPREADSHEET_KEY = os.environ('SPREADSHEET_KEY')
-    FOLDER_ID = os.environ('FOLDER_ID')
-    GOOGLE_JSON = os.environ('GOOGLE_JSON')
+    SPREADSHEET_KEY = os.environ['SPREADSHEET_KEY']
+    FOLDER_ID = os.environ['FOLDER_ID']
+    GOOGLE_JSON = os.environ['GOOGLE_JSON']
 
 else:
     mode = 1
