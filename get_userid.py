@@ -17,7 +17,7 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name('js/fc-line-59d50
 gc = gspread.authorize(credentials)
 ws_conditions_list = gc.open_by_key(os.getenv('SPREADSHEET_KEY')).worksheet("ユーザーID取得（テスト）") #スプレッドシート【LINE物件情報自動通知】の"希望条件"シートを開く
 conditions_list = ws_conditions_list.get_all_values()
-redisterd_user_ids = ws_conditions_list.col_values(1)
+redisterd_user_ids = ws_conditions_list.col_values(2)
 print(redisterd_user_ids)
 
 
@@ -25,7 +25,7 @@ try:
     profile = line_bot_api.get_followers_ids()
     dt_now = datetime.datetime.now()
     dt_now = dt_now.strftime('%Y/%m/%d')
-    users = [[i,line_bot_api.get_profile(i).display_name,dt_now] for i in profile.user_ids if i not in redisterd_user_ids]
+    users = [[line_bot_api.get_profile(i).display_name,i,dt_now] for i in profile.user_ids if i not in redisterd_user_ids]
     for i in users:
         ws_conditions_list.append_row(i)
 except LineBotApiError as e:
