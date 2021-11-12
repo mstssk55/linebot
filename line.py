@@ -154,10 +154,10 @@ drive = GoogleDrive(gauth)
 gc = gspread.authorize(credentials) #OAuth2の資格情報を使用してGoogle APIにログインします。
 
 #driveフォルダ内のファイル名一覧取得
-sc_file_list = [f['title'] for f in drive.ListFile({'q': '"{}" in parents'.format(FOLDER_ID)}).GetList()]
+sc_file_list = {f['title']:f['id'] for f in drive.ListFile({'q': '"{}" in parents'.format(FOLDER_ID)}).GetList()}
 if dt_now in sc_file_list:
     #該当ファイルの物件情報取得
-    ws_sc_file = gc.open(dt_now)#該当ファイルを開く
+    ws_sc_file = gc.open_by_key(sc_file_list[dt_now])#該当ファイルを開く
     sc_all_list = {} #物件情報を格納するリスト
     sc_all_title = {} #物件情報のキー格納
     for i in s.kind: #種類別に物件情報を格納
@@ -298,7 +298,6 @@ if dt_now in sc_file_list:
                     # -------------------------------------------------------------------------------------------
                     else:
                         print(f'{p["お客様名"]}様のMAILアドレスが設定されていません。')
-
                 else:
                     print(f'{p["お客様名"]}様の配信方法が設定されていません。')
             else:
