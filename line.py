@@ -132,6 +132,16 @@ def remove_walk(time):
     minite = minite.split("分")[0]
     return int(minite)
 
+#送信履歴
+def history_log(data_list,user):
+    if user["配信方法"] == "LINE":
+        send_to = user["lineID"]
+    elif user["配信方法"] == "MAIL":
+        send_to = user["mail"]
+    history_data = [[user["お客様名"],user["配信方法"],send_to,sd["物件名"],sd["url"],str(datetime.date.today())] for sd in data_list]
+    for up in history_data:
+        history_sheet.append_row(up,value_input_option="USER_ENTERED")
+
 # ---------------------------------------------------------------------------------------------------------------
 
 # 関数設定ここまで
@@ -167,6 +177,7 @@ if dt_now in sc_file_list:
         sc_all_list[i] = sc_list
 
     #ユーザーの希望条件リストを習得
+    history_sheet = gc.open_by_key(SPREADSHEET_KEY).worksheet("送信履歴")
     ws_conditions_list = gc.open_by_key(SPREADSHEET_KEY).worksheet("希望条件") #スプレッドシート【LINE物件情報自動通知】の"希望条件"シートを開く
     conditions_list = ws_conditions_list.get_all_values() #希望条件シートの全データ取得
     conditions_list = [{k:i for i,k in zip(c,conditions_list[0])} for c in conditions_list] #辞書型に変換
@@ -238,8 +249,8 @@ if dt_now in sc_file_list:
             #条件に合致する物件があるか確認
             if len(sc_list) >0:
                 print(f'希望条件に合致する物件が{len(sc_list)}件ありました')
-                send_data = [{i: k for i,k in zip(sc_list_title,s)} for s in sc_list]
-                send_data = [[[i,d[i]] for i in s.send_categories[c_kind]]for d in send_data]
+                send_data_dict = [{i: k for i,k in zip(sc_list_title,s)} for s in sc_list]
+                send_data = [[[i,d[i]] for i in s.send_categories[c_kind]]for d in send_data_dict]
 
                 #配信方法で分岐
 
@@ -255,6 +266,7 @@ if dt_now in sc_file_list:
                         user_name = profile.display_name
                         messages = TextSendMessage(text=line_send_message(user_name,send_data))
                         line_bot_api.push_message(user_id, messages=messages)
+                        history_log(send_data_dict,p)
                         print(f'{len(sc_list)}件の物件情報を{p["お客様名"]}様にLINEで送付しました')
                     # -------------------------------------------------------------------------------------------
                     # LINEで送付ここまで---------------------------------------------------------------------------
@@ -292,6 +304,7 @@ if dt_now in sc_file_list:
                         message = create_message(sender, to, subject, message_text)
                         # 7. Gmail APIを呼び出してメール送信
                         send_message(service, 'me', message)
+                        history_log(send_data_dict,p)
                         print(f'{len(sc_list)}件の物件情報を{p["お客様名"]}様にMAILで送付しました')
                     # -------------------------------------------------------------------------------------------
                     # MAILで送付ここまで---------------------------------------------------------------------------
