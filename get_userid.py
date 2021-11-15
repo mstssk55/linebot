@@ -13,7 +13,7 @@ line_bot_api = LineBotApi(os.getenv('GET_USER_ID'))
 
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
 
-credentials = ServiceAccountCredentials.from_json_keyfile_name('js/fc-line-59d509520a59.json', scope)
+credentials = ServiceAccountCredentials.from_json_keyfile_name('js/keyfile.json', scope)
 gc = gspread.authorize(credentials)
 ws_conditions_list = gc.open_by_key(os.getenv('SPREADSHEET_KEY')).worksheet("ユーザーID取得（テスト）") #スプレッドシート【LINE物件情報自動通知】の"希望条件"シートを開く
 conditions_list = ws_conditions_list.get_all_values()

@@ -61,7 +61,7 @@ else:
     LINE_ACCESS_TOKEN = os.getenv('LINE_ACCESS_TOKEN')
     SPREADSHEET_KEY = os.getenv('SPREADSHEET_KEY')
     FOLDER_ID = os.getenv('FOLDER_ID')
-    GOOGLE_JSON = 'js/fc-line-59d509520a59.json'
+    GOOGLE_JSON = 'js/keyfile.json'
     CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_JSON, SCOPES)
     SENDER = os.getenv('SENDER')
 
