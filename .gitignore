@@ -4,4 +4,4 @@ venv/
 key.py
 token.json
 .env
-pass.txt
+info.txt
