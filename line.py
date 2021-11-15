@@ -46,6 +46,7 @@ if "env" in os.environ.keys():
     FOLDER_ID = os.environ['FOLDER_ID']
     GOOGLE_JSON = json.loads(os.environ['GOOGLE_JSON'])
     CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_dict(GOOGLE_JSON, SCOPES)
+    SENDER = os.environ['SENDER']
 
 else:
     mode = 2
@@ -62,6 +63,7 @@ else:
     FOLDER_ID = os.getenv('FOLDER_ID')
     GOOGLE_JSON = 'js/fc-line-59d509520a59.json'
     CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_JSON, SCOPES)
+    SENDER = os.getenv('SENDER')
 
 # ---------------------------------------------------------------------------------------------------------------
 
@@ -297,7 +299,7 @@ if dt_now in sc_file_list:
                                 token.write(creds.to_json())
                         service = build('gmail', 'v1', credentials=creds)
                         # 6. メール本文の作成
-                        sender = ''
+                        sender = SENDER
                         to = p["mail"]
                         subject = '希望条件に近い不動産情報が見つかりました。'
                         message_text = line_send_message(p["お客様名"],send_data)
