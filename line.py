@@ -10,6 +10,8 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 import gspread
 from email.mime.text import MIMEText
+from email.header import Header
+
 
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
@@ -47,6 +49,7 @@ if "env" in os.environ.keys():
     GOOGLE_JSON = json.loads(os.environ['GOOGLE_JSON'])
     CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_dict(GOOGLE_JSON, SCOPES)
     SENDER = os.environ['SENDER']
+    COMPANY_NAME = os.environ['COMPANY_NAME']
 
 else:
     mode = 2
@@ -64,6 +67,7 @@ else:
     GOOGLE_JSON = 'js/keyfile.json'
     CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_JSON, SCOPES)
     SENDER = os.getenv('SENDER')
+    COMPANY_NAME = os.getenv('COMPANY_NAME')
 
 # ---------------------------------------------------------------------------------------------------------------
 
@@ -176,8 +180,16 @@ if dt_now in sc_file_list:
         sc_list = ws_sc_file.worksheet(i).get_all_values()
         sc_all_title[i] = sc_list[0]
         del sc_list[0]
+        seen = []
+        del_index = []
+        for num,x in enumerate(sc_list):
+            index_list = [x[l] for l in s.index_list[i]]
+            if index_list not in seen:
+                seen.append(index_list)
+            else:
+                del_index.append(num)
+        sc_list = [l for num,l in enumerate(sc_list) if num not in del_index ]
         sc_all_list[i] = sc_list
-
     #ユーザーの希望条件リストを習得
     history_sheet = gc.open_by_key(SPREADSHEET_KEY).worksheet("送信履歴")
     ws_conditions_list = gc.open_by_key(SPREADSHEET_KEY).worksheet("希望条件") #スプレッドシート【LINE物件情報自動通知】の"希望条件"シートを開く
@@ -299,7 +311,10 @@ if dt_now in sc_file_list:
                                 token.write(creds.to_json())
                         service = build('gmail', 'v1', credentials=creds)
                         # 6. メール本文の作成
-                        sender = SENDER
+                        send_name = u'株式会社' + COMPANY_NAME
+                        charset = 'iso-2022-jp'
+                        send_addr = SENDER #差出人のメールアドレス
+                        sender = '%s <%s>'%(Header(send_name.encode(charset),charset).encode(),send_addr)
                         to = p["mail"]
                         subject = '希望条件に近い不動産情報が見つかりました。'
                         message_text = line_send_message(p["お客様名"],send_data)
