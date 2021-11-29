@@ -11,10 +11,12 @@ from pydrive.drive import GoogleDrive
 import gspread
 from email.mime.text import MIMEText
 from email.header import Header
-
+from google.auth.exceptions import RefreshError
 
 from linebot import LineBotApi
 from linebot.models import TextSendMessage
+from linebot.exceptions import LineBotApiError
+
 
 import json
 import base64
@@ -52,7 +54,7 @@ if "env" in os.environ.keys():
     COMPANY_NAME = os.environ['COMPANY_NAME']
 
 else:
-    mode = 2
+    mode = 1
     if mode == 1:
         dt_now = datetime.datetime.now()
         dt_now = dt_now.strftime('%Y-%m-%d')
@@ -274,14 +276,19 @@ if dt_now in sc_file_list:
                     # -------------------------------------------------------------------------------------------
                     # LINEで送付----------------------------------------------------------------------------------
                     # -------------------------------------------------------------------------------------------
-                        line_bot_api = LineBotApi(LINE_ACCESS_TOKEN)
-                        user_id = p["lineID"]
-                        profile = line_bot_api.get_profile(user_id)
-                        user_name = profile.display_name
-                        messages = TextSendMessage(text=line_send_message(user_name,send_data))
-                        line_bot_api.push_message(user_id, messages=messages)
-                        history_log(send_data_dict,p)
-                        print(f'{len(sc_list)}件の物件情報を{p["お客様名"]}様にLINEで送付しました')
+                        try:
+                            line_bot_api = LineBotApi(LINE_ACCESS_TOKEN)
+                            user_id = p["lineID"]
+                            profile = line_bot_api.get_profile(user_id)
+                            user_name = profile.display_name
+                            messages = TextSendMessage(text=line_send_message(user_name,send_data))
+                            line_bot_api.push_message(user_id, messages=messages)
+                            history_log(send_data_dict,p)
+                            print(f'{len(sc_list)}件の物件情報を{p["お客様名"]}様にLINEで送付しました')
+                        except LineBotApiError as e:
+                            print(e)
+                        except:
+                            print("LINE送信に失敗しました")
                     # -------------------------------------------------------------------------------------------
                     # LINEで送付ここまで---------------------------------------------------------------------------
                     # -------------------------------------------------------------------------------------------
@@ -294,35 +301,40 @@ if dt_now in sc_file_list:
                     # -------------------------------------------------------------------------------------------
                     # MAILで送付----------------------------------------------------------------------------------
                     # -------------------------------------------------------------------------------------------
-                        creds = None
-                        if token_json:
-                            if mode == 0:
-                                tokenFile = json.loads(os.environ["token"])
-                                with open('token.json', 'w') as f:
-                                    json.dump(tokenFile, f, ensure_ascii=False)
-                            creds = Credentials.from_authorized_user_file('token.json', SCOPES_GMAIL)
-                        if not creds or not creds.valid:
-                            if creds and creds.expired and creds.refresh_token:
-                                creds.refresh(Request())
-                            else:
-                                flow = flow_secret
-                                creds = flow.run_local_server()
-                            with open('token.json', 'w') as token:
-                                token.write(creds.to_json())
-                        service = build('gmail', 'v1', credentials=creds)
-                        # 6. メール本文の作成
-                        send_name = u'株式会社' + COMPANY_NAME
-                        charset = 'iso-2022-jp'
-                        send_addr = SENDER #差出人のメールアドレス
-                        sender = '%s <%s>'%(Header(send_name.encode(charset),charset).encode(),send_addr)
-                        to = p["mail"]
-                        subject = '希望条件に近い不動産情報が見つかりました。'
-                        message_text = line_send_message(p["お客様名"],send_data)
-                        message = create_message(sender, to, subject, message_text)
-                        # 7. Gmail APIを呼び出してメール送信
-                        send_message(service, 'me', message)
-                        history_log(send_data_dict,p)
-                        print(f'{len(sc_list)}件の物件情報を{p["お客様名"]}様にMAILで送付しました')
+                        try:
+                            creds = None
+                            if token_json:
+                                if mode == 0:
+                                    tokenFile = json.loads(os.environ["token"])
+                                    with open('token.json', 'w') as f:
+                                        json.dump(tokenFile, f, ensure_ascii=False)
+                                creds = Credentials.from_authorized_user_file('token.json', SCOPES_GMAIL)
+                            if not creds or not creds.valid:
+                                if creds and creds.expired and creds.refresh_token:
+                                    creds.refresh(Request())
+                                else:
+                                    flow = flow_secret
+                                    creds = flow.run_local_server()
+                                with open('token.json', 'w') as token:
+                                    token.write(creds.to_json())
+                            service = build('gmail', 'v1', credentials=creds)
+                            # 6. メール本文の作成
+                            send_name = u'株式会社' + COMPANY_NAME
+                            charset = 'iso-2022-jp'
+                            send_addr = SENDER #差出人のメールアドレス
+                            sender = '%s <%s>'%(Header(send_name.encode(charset),charset).encode(),send_addr)
+                            to = p["mail"]
+                            subject = '希望条件に近い不動産情報が見つかりました。'
+                            message_text = line_send_message(p["お客様名"],send_data)
+                            message = create_message(sender, to, subject, message_text)
+                            # 7. Gmail APIを呼び出してメール送信
+                            send_message(service, 'me', message)
+                            history_log(send_data_dict,p)
+                            print(f'{len(sc_list)}件の物件情報を{p["お客様名"]}様にMAILで送付しました')
+                        except RefreshError as e:
+                            print(e)
+                        except:
+                            print("メール送信に失敗しました")
                     # -------------------------------------------------------------------------------------------
                     # MAILで送付ここまで---------------------------------------------------------------------------
                     # -------------------------------------------------------------------------------------------
